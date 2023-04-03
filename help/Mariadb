@@ -1,0 +1,51 @@
+Sure, here's how you can modify the previous code to use MariaDB instead of PostgreSQL:
+
+Install MariaDB on your system, if it is not already installed.
+
+Create a new database using the mysql command or any other MariaDB client.
+
+Create a new user with a password and grant the necessary privileges to the user on the new database.
+
+Update the [Database] section in the config.ini file with the correct values for host, port, database, user, and password.
+
+In your Python code, you can use the mysql-connector-python library to connect to the database and execute SQL queries. Here's an example code snippet:
+
+python
+Copy code
+import mysql.connector
+from configparser import ConfigParser
+
+# read database connection details from config.ini file
+config = ConfigParser()
+config.read('config.ini')
+
+host = config.get('Database', 'host')
+port = config.get('Database', 'port')
+database = config.get('Database', 'database')
+user = config.get('Database', 'user')
+password = config.get('Database', 'password')
+
+# connect to the database
+conn = mysql.connector.connect(
+    host=host,
+    port=port,
+    database=database,
+    user=user,
+    password=password
+)
+
+# create a cursor object to execute SQL queries
+cur = conn.cursor()
+
+# execute a sample SQL query
+cur.execute("SELECT * FROM users")
+
+# fetch the results and print them
+rows = cur.fetchall()
+for row in rows:
+    print(row)
+
+# close the cursor and database connection
+cur.close()
+conn.close()
+In the code above, mysql-connector-python library is used to connect to the MariaDB database using the values from the config.ini file. The sample SQL query selects all the rows from the users table, and the fetched results are printed. Remember to replace the SQL query with your own queries as needed.

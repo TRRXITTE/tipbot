@@ -1,0 +1,16 @@
+
+To load the private key securely, you can store it as an environment variable and retrieve it using the os.environ.get() method. Here's an example:
+
+import os
+
+# Load private key securely
+private_key = os.environ.get('PRIVATE_KEY')
+if private_key is None:
+    print('PRIVATE_KEY environment variable not set')
+    exit(1)
+
+# Use the private key to sign transactions or interact with the blockchain
+Make sure to set the PRIVATE_KEY environment variable before running the script. You can do this in the terminal using the export command:
+
+export PRIVATE_KEY=0x123456789abcdef...
+Alternatively, you can set the environment variable in your IDE or operating system settings.
