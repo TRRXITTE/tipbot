@@ -5,16 +5,16 @@ CREATE TABLE users (
     PRIMARY KEY (user_id)
 );
 
-CREATE TABLE addresses (
+CREATE TABLE balances (
     user_id INT NOT NULL,
-    address VARCHAR(42) NOT NULL,
-    private_key VARCHAR(64) NOT NULL,
+    balance DECIMAL(18, 9) NOT NULL,
     PRIMARY KEY (user_id)
 );
 
 CREATE TABLE addresses (
     user_id INT NOT NULL,
     address VARCHAR(42) NOT NULL,
+    private_key VARCHAR(64) NOT NULL,
     PRIMARY KEY (user_id)
 );
 
