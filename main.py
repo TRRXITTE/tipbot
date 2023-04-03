@@ -54,6 +54,9 @@ web3 = Web3(HTTPProvider('https://bsc-dataseed1.binance.org/'))
 with open('abi.json', 'r') as f:
     abi = json.load(f)
 
+# Convert BEP20_CONTRACT_ADDRESS to checksum address
+BEP20_CONTRACT_ADDRESS = web3.toChecksumAddress(BEP20_CONTRACT_ADDRESS)
+
 # Initialize BEP20 contract
 contract = web3.eth.contract(address=BEP20_CONTRACT_ADDRESS, abi=abi)
 
