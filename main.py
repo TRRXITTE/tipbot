@@ -14,6 +14,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandle
 
 import mysql.connector
 from web3 import Web3, HTTPProvider, Account
+from web3.auto import w3
 
 from eth_utils import to_checksum_address
 
@@ -98,8 +99,8 @@ def start(update: Update, context: CallbackContext):
 def help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
     help_text = '''Available commands:
-    
-/deposit - Get your deposit address.
+/register - Create a BSC address
+/deposit - Get your deposit address for NYANTE.
 /withdraw <address> <amount> - Withdraw tokens to an external address.
 /balance - Get your token balance.
 /tip <amount> <username> - Send tokens to another user.
@@ -107,6 +108,37 @@ def help(update: Update, context: CallbackContext):
 /draw <amount> <num_winners> <hashtag> - Start a giveaway and randomly reward users who reply with the specified hashtag.
 /help - Show this help message.'''
     update.message.reply_text(help_text)
+
+def register(update: Update, context: CallbackContext):
+    """Register the user and generate a BSC address."""
+    user_id = update.message.from_user.id
+    if update.message.chat.type != 'private':
+        update.message.reply_text('This command can only be used in a private chat.')
+        return
+    # Check if user is already registered
+    cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
+    result = cursor.fetchone()
+    if result is not None:
+        update.message.reply_text('You are already registered.')
+        return
+    # Generate new BSC address and private key
+    account = w3.eth.account.create()
+    address = account.address
+    private_key = account.privateKey.hex()
+    # Check if address is valid
+    if not Web3.isAddress(address):
+        update.message.reply_text('Error: Invalid BSC address generated. Please try again.')
+        return
+    # Insert new address and private key into database
+    cursor.execute('INSERT INTO addresses (user_id, address, private_key) VALUES (%s, %s, %s)', (user_id, address, private_key))
+    db.commit()
+    # Insert new user into database
+    username = update.message.from_user.username
+    cursor.execute('INSERT INTO users (user_id, username) VALUES (%s, %s)', (user_id, username))
+    db.commit()
+    # Send confirmation message
+    message = f'You have been registered with the following BSC address:\n\n{address}\n\nPlease use this address to deposit BNB or BEP20 tokens to your account.'
+    context.bot.send_message(chat_id=user_id, text=message)
 
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
