@@ -2,7 +2,7 @@
 * This is a BEP20 tip bot for Telegram. It allows users to send and receive tokens in a Telegram chat.
 
 ## Installation
-* Clone the repository: git clone https://github.com/TRRXITTE/NYANTEbot
+* Clone the repository: git clone https://github.com/TRRXITTE/tipbot
 * Install the required packages: pip install -r requirements.txt
 * Create a .env file in the root directory and add the following variables:
 ```
