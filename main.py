@@ -268,6 +268,10 @@ def withdraw(update: Update, context: CallbackContext):
     if balance < amount:
         update.message.reply_text('Insufficient balance.')
         return
+
+    # load private_key BNB from config.ini
+    PRIVATE_KEY = config.get('BNB', 'private_key')
+
     # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
     gas_limit = web3.eth.estimateGas({
