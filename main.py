@@ -112,6 +112,18 @@ def deposit(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.')
 
+    
+    def balance(update: Update, context: CallbackContext):
+    """Get the user's token balance."""
+    user_id = update.message.from_user.id
+    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('You do not have any tokens.')
+    else:
+        balance = Decimal(result[0])
+        update.message.reply_text(f'Your balance is: {balance} tokens.')
+
 
 def myaddress(update: Update, context: CallbackContext):
     """Show the user's deposit address."""
