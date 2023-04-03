@@ -260,7 +260,7 @@ def transfer(update: Update, context: CallbackContext):
         recipient_username = context.args[2]
         amount = Decimal(context.args[1]) * Decimal(10 ** 18)
     elif context.args[0] == '/transfer':
-        recipient_username = context.args[0]
+        recipient_username = context.args[2]
         amount = Decimal(context.args[1]) * Decimal(10 ** 18)
     else:
         update.message.reply_text('Usage: /tip <amount> NYANTE @username or /transfer <amount> NYANTE @username')
