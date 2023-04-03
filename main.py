@@ -151,3 +151,23 @@ def withdraw(update: Update, context: CallbackContext):
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
+
+# Initialize the Telegram bot
+updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
+
+# Get the dispatcher to register handlers
+dispatcher = updater.dispatcher
+
+# Add command handlers
+dispatcher.add_handler(CommandHandler('start', start))
+dispatcher.add_handler(CommandHandler('help', help))
+dispatcher.add_handler(CommandHandler('deposit', deposit))
+dispatcher.add_handler(CommandHandler('myaddress', myaddress))
+dispatcher.add_handler(CommandHandler('withdraw', withdraw))
+dispatcher.add_handler(CommandHandler('balance', balance))
+dispatcher.add_handler(CommandHandler('tip', tip))
+dispatcher.add_handler(CommandHandler('rain', rain))
+dispatcher.add_handler(CommandHandler('draw', draw))
+
+# Start the bot
+updater.start_polling()
