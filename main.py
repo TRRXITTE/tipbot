@@ -237,39 +237,40 @@ def withdraw(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
-def tip(update: Update, context: CallbackContext):
-    """Tip another user with tokens."""
-    user_id = update.message.from_user.id
-    args = context.args
-    if len(args) != 2:
-        update.message.reply_text('Usage: /tip <user> <amount>')
+def transfer(update: Update, context: CallbackContext):
+    """Transfer NYANTE tokens from one user to another."""
+    # Get sender and recipient user IDs and amount from message
+    sender_id = update.message.from_user.id
+    recipient_username = context.args[0]
+    amount = int(context.args[1])
+    # Check if sender has enough NYANTE tokens
+    sender_address = get_address(sender_id)
+    sender_balance = nyante_contract.functions.balanceOf(sender_address).call()
+    if sender_balance < amount:
+        update.message.reply_text('Error: Insufficient balance.')
         return
-    target_user = args[0]
-    amount = Decimal(args[1])
-    if amount < 1:
-        update.message.reply_text('Minimum tip amount is 1 token.')
-        return
-    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
+    # Get recipient user ID
+    cursor.execute('SELECT user_id FROM users WHERE username = %s', (recipient_username,))
     result = cursor.fetchone()
     if result is None:
-        update.message.reply_text('You do not have any tokens to tip.')
+        update.message.reply_text(f'User {recipient_username} not found.')
         return
-    balance = Decimal(result[0])
-    if balance < amount:
-        update.message.reply_text('Insufficient balance.')
-        return
-    # Get target user's user_id
-    cursor.execute('SELECT user_id FROM users WHERE username = %s', (target_user,))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text(f'User {target_user} not found.')
-        return
-    target_user_id = result[0]
+    recipient_id = result[0]
+    # Transfer NYANTE tokens
+    recipient_address = get_address(recipient_id)
+    tx_hash = nyante_contract.functions.transfer(recipient_address, amount).transact({'from': sender_address})
+    # Wait for transaction to be mined
+    receipt = web3.eth.waitForTransactionReceipt(tx_hash)
     # Update balances in database
-    cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, target_user_id))
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+    cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
     db.commit()
-    update.message.reply_text(f'You tipped {target_user} {amount} tokens.')
+    # Send message to sender
+    sender_message = f'You transferred {amount} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
+    context.bot.send_message(chat_id=sender_id, text=sender_message)
+    # Send message to recipient
+    recipient_message = f'You received {amount} NYANTE from {update.message.from_user.username}. Transaction hash: {receipt.transactionHash.hex()}'
+    context.bot.send_message(chat_id=recipient_id, text=recipient_message)
 
 def rain(update: Update, context: CallbackContext):
     """Distribute tokens to a group of users."""
@@ -366,7 +367,7 @@ dispatcher.add_handler(CommandHandler('deposit', deposit))
 dispatcher.add_handler(CommandHandler('myaddress', myaddress))
 dispatcher.add_handler(CommandHandler('withdraw', withdraw))
 dispatcher.add_handler(CommandHandler('balance', balance))
-dispatcher.add_handler(CommandHandler('tip', tip))
+dispatcher.add_handler(CommandHandler('transfer', transfer))
 dispatcher.add_handler(CommandHandler('rain', rain))
 dispatcher.add_handler(CommandHandler('draw', draw))
 
