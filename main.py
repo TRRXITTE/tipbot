@@ -248,7 +248,7 @@ def myaddress(update: Update, context: CallbackContext):
         update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.\n\nYour balance is: {balance} tokens.')
 
 def withdraw(update: Update, context: CallbackContext):
-    """Withdraw tokens to an external BNB address."""
+    """Withdraw tokens to an external address."""
     user_id = update.message.from_user.id
     args = context.args
     if len(args) != 2:
@@ -258,7 +258,7 @@ def withdraw(update: Update, context: CallbackContext):
     if not address.startswith('0x'):
         address = '0x' + address
     if not web3.isAddress(address):
-        update.message.reply_text('Invalid BNB address.')
+        update.message.reply_text('Invalid address.')
         return
     address = web3.toChecksumAddress(address)
     amount = Decimal(args[1]) * Decimal(10 ** 18)
@@ -277,18 +277,11 @@ def withdraw(update: Update, context: CallbackContext):
 
     # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
-    # Load BNB deposit address from balances table
-    cursor.execute('SELECT address FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text('BNB deposit address not found.')
-        return
-    bnb_deposit_address = result[0]
     gas_limit = web3.eth.estimateGas({
         'from': BNB_DEPOSIT_ADDRESS,
-        'to': address,
+        'to': NYANTE_TOKEN_ADDRESS,
         'value': 0,
-        'data': nyante_contract.encodeABI(fn_name='transfer', args=[web3.toChecksumAddress(address), web3.toWei(amount, 'ether')])
+        'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, web3.toWei(amount, 'ether')])
     })
     fee = gas_price * gas_limit
     # Calculate BNB fee
@@ -319,7 +312,7 @@ def withdraw(update: Update, context: CallbackContext):
         'nonce': nonce,
         'gasPrice': gas_price,
         'gas': gas_limit,
-        'to': address,
+        'to': NYANTE_TOKEN_ADDRESS,
         'value': 0,
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, amount]),
     }
@@ -330,7 +323,7 @@ def withdraw(update: Update, context: CallbackContext):
     # Update balance in database
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
     # Save transfer to database
-    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, bnb_fee, tx_hash.hex()))
+    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, EXTERNAL_WITHDRAW_ADDRESS_ID, 'External Withdraw Address', amount, bnb_fee, tx_hash.hex()))
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
