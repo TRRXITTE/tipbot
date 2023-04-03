@@ -131,11 +131,15 @@ def deposit(update: Update, context: CallbackContext):
             private_key = result[1]
         # Get balance of NYANTE contract
         nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
-        # Save deposit address to balances table
-        cursor.execute('INSERT INTO balances (user_id, address, balance) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE address = %s', (user_id, address, 0, address))
+        # Get balance of user's address
+        balance = nyante_contract.functions.balanceOf(address).call()
+        # Save deposit address and balance to balances table
+        cursor.execute('INSERT INTO balances (user_id, address, balance) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE address = %s', (user_id, address, balance, address))
         db.commit()
-        message = f'Your deposit address is: {address}\n\nYour private key is: {private_key}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {nyante_balance} \nNyantereum International'
+        message = f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {nyante_balance} \nNyantereum International'
         context.bot.send_message(chat_id=user_id, text=message)
+        # Send private key in a direct message
+        context.bot.send_message(chat_id=user_id, text=f'Your private key is:\n{private_key}\n\nPlease keep your private key safe and do not share it with anyone.')
     else:
         update.message.reply_text('This command can only be used in a private chat.')
 
