@@ -48,19 +48,28 @@ if private_key is None:
     exit(1)
 
 # Initialize Web3
+logger.info('Initializing Web3...')
 web3 = Web3(HTTPProvider('https://bsc-dataseed1.binance.org/'))
+logger.info('Web3 initialized.')
 
 # Load BEP20 contract ABI
+logger.info('Loading BEP20 contract ABI...')
 with open('abi.json', 'r') as f:
     abi = json.load(f)
+logger.info('BEP20 contract ABI loaded.')
 
 # Convert BEP20_CONTRACT_ADDRESS to checksum address
+logger.info('Converting BEP20 contract address to checksum address...')
 BEP20_CONTRACT_ADDRESS = web3.toChecksumAddress(BEP20_CONTRACT_ADDRESS)
+logger.info('BEP20 contract address converted to checksum address.')
 
 # Initialize BEP20 contract
+logger.info('Initializing BEP20 contract...')
 contract = web3.eth.contract(address=BEP20_CONTRACT_ADDRESS, abi=abi)
+logger.info('BEP20 contract initialized.')
 
 # Initialize MySQL connection
+logger.info('Initializing MySQL connection...')
 db = mysql.connector.connect(
     host=DB_HOST,
     port=DB_PORT,
@@ -69,6 +78,7 @@ db = mysql.connector.connect(
     database=DB_NAME
 )
 cursor = db.cursor()
+logger.info('MySQL connection initialized.')
 
 # Set up random string generator for generating user addresses
 def generate_random_string(length):
@@ -101,6 +111,7 @@ def deposit(update: Update, context: CallbackContext):
     cursor.execute('INSERT INTO addresses (user_id, address) VALUES (%s, %s)', (user_id, address))
     db.commit()
     update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.')
+
 
 def myaddress(update: Update, context: CallbackContext):
     """Show the user's deposit address."""
