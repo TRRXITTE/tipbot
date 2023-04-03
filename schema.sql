@@ -8,6 +8,7 @@ CREATE TABLE balances (
     user_id INT NOT NULL,
     address VARCHAR(42) NOT NULL,
     balance DECIMAL(18, 9) NOT NULL,
+    bnb_balance DECIMAL(18, 9) NOT NULL,
     PRIMARY KEY (user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );

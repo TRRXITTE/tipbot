@@ -140,6 +140,17 @@ def register(update: Update, context: CallbackContext):
     message = f'You have been registered with the following BSC address:\n\n{address}\n\nPlease use this address to deposit BNB or BEP20 tokens to your account.'
     context.bot.send_message(chat_id=user_id, text=message)
 
+import requests
+
+def get_bnb_balance(address):
+    url = f'https://api.bscscan.com/api?module=account&action=balance&address={address}&tag=latest&apikey=YourApiKeyToken'
+    response = requests.get(url)
+    if response.status_code == 200:
+        balance = int(response.json()['result']) / 10**18
+        return balance
+    else:
+        return None
+
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
     user_id = update.message.from_user.id
@@ -165,10 +176,14 @@ def deposit(update: Update, context: CallbackContext):
         nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
         # Get balance of user's address
         balance = nyante_contract.functions.balanceOf(address).call()
-        # Save deposit address and balance to balances table
-        cursor.execute('INSERT INTO balances (user_id, address, balance) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE address = %s', (user_id, address, balance, address))
+        # Get balance of BNB
+        bnb_balance = get_bnb_balance(address)
+        if bnb_balance is None:
+            bnb_balance = 0
+        # Save deposit address and balances to balances table
+        cursor.execute('INSERT INTO balances (user_id, address, balance, bnb_balance) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE address = %s, balance = %s, bnb_balance = %s', (user_id, address, balance, bnb_balance, address, balance, bnb_balance))
         db.commit()
-        message = f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {nyante_balance} \nNyantereum International'
+        message = f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {nyante_balance} \nNyantereum International\n\nBinance [BNB]: Amount {bnb_balance:.8f}'
         context.bot.send_message(chat_id=user_id, text=message)
         # Send private key in a direct message
         context.bot.send_message(chat_id=user_id, text=f'Your private key is:\n{private_key}\n\nPlease keep your private key safe and do not share it with anyone.')
