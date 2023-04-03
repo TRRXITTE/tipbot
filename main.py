@@ -458,6 +458,7 @@ dispatcher = updater.dispatcher
 # Add command handlers
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('help', help))
+dispatcher.add_handler(CommandHandler('register', register))
 dispatcher.add_handler(CommandHandler('deposit', deposit))
 dispatcher.add_handler(CommandHandler('myaddress', myaddress))
 dispatcher.add_handler(CommandHandler('withdraw', withdraw))
