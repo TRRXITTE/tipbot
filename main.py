@@ -277,8 +277,8 @@ def withdraw(update: Update, context: CallbackContext):
 
     # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
-    # Load BNB deposit address from addresses table
-    cursor.execute('SELECT address FROM addresses WHERE user_id = %s AND private_key IS NULL', (user_id,))
+    # Load BNB deposit address from balances table
+    cursor.execute('SELECT address FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
     result = cursor.fetchone()
     if result is None:
         update.message.reply_text('BNB deposit address not found.')
