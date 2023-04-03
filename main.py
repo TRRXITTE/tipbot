@@ -248,16 +248,19 @@ def myaddress(update: Update, context: CallbackContext):
         update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.\n\nYour balance is: {balance} tokens.')
 
 def withdraw(update: Update, context: CallbackContext):
-    """Withdraw tokens to an external address."""
+    """Withdraw tokens to an external BNB address."""
     user_id = update.message.from_user.id
     args = context.args
     if len(args) != 2:
         update.message.reply_text('Usage: /withdraw <address> <amount>')
         return
     address = args[0]
+    if not address.startswith('0x'):
+        address = '0x' + address
     if not web3.isAddress(address):
-        update.message.reply_text('Invalid Ethereum address.')
+        update.message.reply_text('Invalid BNB address.')
         return
+    address = web3.toChecksumAddress(address)
     amount = Decimal(args[1]) * Decimal(10 ** 18)
     if amount < 1000000 * Decimal(10 ** 18):
         update.message.reply_text('Minimum withdrawal amount is 1000000 tokens.')
