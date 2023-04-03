@@ -161,7 +161,7 @@ def withdraw(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
-    def tip(update: Update, context: CallbackContext):
+def tip(update: Update, context: CallbackContext):
     """Tip another user with tokens."""
     user_id = update.message.from_user.id
     args = context.args
