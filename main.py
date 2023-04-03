@@ -195,8 +195,7 @@ def tip(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'You tipped {target_user} {amount} tokens.')
 
-
-    def rain(update: Update, context: CallbackContext):
+def rain(update: Update, context: CallbackContext):
     """Distribute tokens to a group of users."""
     user_id = update.message.from_user.id
     args = context.args
