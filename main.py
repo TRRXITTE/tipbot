@@ -234,51 +234,48 @@ def rain(update: Update, context: CallbackContext):
     update.message.reply_text(f'You rained {amount} tokens on {num_users} users in group {group}.')
 
     def draw(update: Update, context: CallbackContext):
-        """Participate in a draw and have a chance to win tokens."""
-        user_id = update.message.from_user.id
-        args = context.args
-        if len(args) != 3:
-            update.message.reply_text('Usage: /draw <amount> <hashtag> <message>')
+    """Participate in a draw and have a chance to win tokens."""
+    user_id = update.message.from_user.id
+    args = context.args
+    if len(args) != 3:
+        update.message.reply_text('Usage: /draw <amount> <hashtag> <message>')
+        return
+    amount = Decimal(args[0])
+    if amount < 1:
+        update.message.reply_text('Minimum draw amount is 1 token.')
+        return
+    hashtag = args[1]
+    message = args[2]
+    num_participants = 0
+    if update.message.reply_to_message is not None:
+        # Check if there are any participants
+        cursor.execute('SELECT COUNT(*) FROM draw_entries WHERE round = %s', (current_round,))
+        result = cursor.fetchone()
+        if result[0] == 0:
+            update.message.reply_text('No participants in this round.')
             return
-        amount = Decimal(args[0])
-        if amount < 1:
-            update.message.reply_text('Minimum draw amount is 1 token.')
+        # Get list of users who replied with the hashtag
+        participants = []
+        for message in update.message.reply_to_message.reply_markup.inline_keyboard[0]:
+            if message.text == hashtag:
+                participants.append(message.user.id)
+        num_participants = len(participants)
+        if num_participants == 0:
+            update.message.reply_text(f'No participants with hashtag {hashtag}.')
             return
-        hashtag = args[1]
-        message = args[2]
-        num_participants = 0
-        if update.message.reply_to_message is not None:
-            # Check if there are any participants
-            cursor.execute('SELECT COUNT(*) FROM draw_entries WHERE round = %s', (current_round,))
-            result = cursor.fetchone()
-            if result[0] == 0:
-                update.message.reply_text('No participants in this round.')
-                return
-            # Get list of users who replied with the hashtag
-            participants = []
-            for message in update.message.reply_to_message.reply_markup.inline_keyboard[0]:
-                if message.text == hashtag:
-                    participants.append(message.user.id)
-            num_participants = len(participants)
-            if num_participants == 0:
-                update.message.reply_text(f'No participants with hashtag {hashtag}.')
-                return
-            # Calculate amount to distribute to each participant
-            amount_per_participant = amount / num_participants
-            # Update balances in database
-            for participant in participants:
-                cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount_per_participant, participant))
-            cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
-            db.commit()
-            update.message.reply_text(f'{num_participants} participants entered the draw with {hashtag}. Each participant won {amount_per_participant} tokens. Message: {message}')
-        else:
-            # Add entry to draw_entries table
-            cursor.execute('INSERT INTO draw_entries (user_id, round, amount) VALUES (%s, %s, %s)', (user_id, current_round, amount))
-            db.commit()
-            update.message.reply_text(f'You have entered the draw with {amount} tokens. Hashtag: {hashtag}. Message: {message}')
-
-
-            
+        # Calculate amount to distribute to each participant
+        amount_per_participant = amount / num_participants
+        # Update balances in database
+        for participant in participants:
+            cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount_per_participant, participant))
+        cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+        db.commit()
+        update.message.reply_text(f'{num_participants} participants entered the draw with {hashtag}. Each participant won {amount_per_participant} tokens. Message: {message}')
+    else:
+        # Add entry to draw_entries table
+        cursor.execute('INSERT INTO draw_entries (user_id, round, amount) VALUES (%s, %s, %s)', (user_id, current_round, amount))
+        db.commit()
+        update.message.reply_text(f'You have entered the draw with {amount} tokens. Hashtag: {hashtag}. Message: {message}')
 
 # Initialize the Telegram bot
 updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
