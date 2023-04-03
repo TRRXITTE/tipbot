@@ -119,3 +119,20 @@ def withdraw(update: Update, context: CallbackContext):
     address = args[0]
     amount = Decimal(args[1])
     if amount < 1000:
+        update.message.reply_text('Minimum withdrawal amount is 1000 tokens.')
+        return
+    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('You do not have any tokens to withdraw.')
+        return
+    balance = Decimal(result[0])
+    if balance < amount:
+        update.message.reply_text('Insufficient balance.')
+        return
+    # Transfer tokens to external address
+    tx_hash = contract.functions.transfer(address, amount).transact({'from': BEP20_DEPOSIT_ADDRESS, 'gas': 100000})
+    # Update balance in database
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+    db.commit()
+    update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
