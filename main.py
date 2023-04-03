@@ -291,10 +291,13 @@ def withdraw(update: Update, context: CallbackContext):
     if bnb_balance < bnb_fee:
         update.message.reply_text('Insufficient BNB balance to pay for the transaction fee.')
         return
-    # Load private key securely
-    private_key = os.environ.get('PRIVATE_KEY')
-    if private_key is None:
-        private_key = getpass.getpass('Enter BNB private key: ')
+    # Load private key securely from addresses table
+    cursor.execute('SELECT private_key FROM addresses WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('BNB private key not found.')
+        return
+    private_key = result[0]
     account = Account.from_key(private_key)
     # Create unsigned transaction
     nonce = web3.eth.getTransactionCount(account.address)
