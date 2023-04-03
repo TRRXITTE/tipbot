@@ -111,17 +111,13 @@ def help(update: Update, context: CallbackContext):
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
     user_id = update.message.from_user.id
-    cursor.execute('SELECT address FROM addresses WHERE user_id = %s', (user_id,))
+    cursor.execute('SELECT address, private_key FROM addresses WHERE user_id = %s', (user_id,))
     result = cursor.fetchone()
     if result is None:
         # Generate new address and private key
-        private_key_bytes = os.urandom(32)
-        private_key = binascii.hexlify(private_key_bytes).decode('utf-8')
-        account = web3.eth.account.privateKeyToAccount(private_key)
-        # Generate unique NYANTE address for user
-        base_address = config.get('NYANTE', 'deposit_address')
-        unique_id = generate_random_string(16)
-        address = base_address + unique_id
+        account = web3.eth.account.create()
+        address = account.address
+        private_key = account.privateKey.hex()
         # Check if address is valid
         if not web3.isAddress(address):
             update.message.reply_text('Error: Invalid deposit address generated. Please try again.')
@@ -131,10 +127,12 @@ def deposit(update: Update, context: CallbackContext):
         db.commit()
     else:
         address = result[0]
+        private_key = result[1]
     # Get balance of NYANTE contract
     nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
-    update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: {nyante_balance}')
+    update.message.reply_text(f'Your deposit address is: 0x{address}\nYour private key is: {private_key}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: {nyante_balance}')
     
+
 def privkey(update: Update, context: CallbackContext):
     """Send the user's private key and address in a direct message."""
     user_id = update.message.from_user.id
