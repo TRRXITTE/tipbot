@@ -277,6 +277,10 @@ def withdraw(update: Update, context: CallbackContext):
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, amount])
     })
     fee = gas_price * gas_limit
+    # Calculate BNB fee
+    bnb_fee = fee / Decimal(10 ** 18)
+    # Deduct BNB fee from user's balance
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s AND address = %s', (bnb_fee, user_id, BNB_DEPOSIT_ADDRESS))
     # Check if user has enough BNB for fee
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
     result = cursor.fetchone()
@@ -284,7 +288,7 @@ def withdraw(update: Update, context: CallbackContext):
         update.message.reply_text('You do not have any BNB to pay for the transaction fee.')
         return
     bnb_balance = Decimal(result[0])
-    if bnb_balance < fee:
+    if bnb_balance < bnb_fee:
         update.message.reply_text('Insufficient BNB balance to pay for the transaction fee.')
         return
     # Load private key securely
@@ -306,12 +310,10 @@ def withdraw(update: Update, context: CallbackContext):
     signed_tx = account.sign_transaction(tx)
     # Send signed transaction
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-    # Deduct fee from BNB balance
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s AND address = %s', (fee, user_id, BNB_DEPOSIT_ADDRESS))
     # Update balance in database
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
     # Save transfer to database
-    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, fee, tx_hash.hex()))
+    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, bnb_fee, tx_hash.hex()))
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
