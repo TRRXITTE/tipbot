@@ -275,13 +275,17 @@ def withdraw(update: Update, context: CallbackContext):
         update.message.reply_text('Insufficient balance.')
         return
 
-    # load private_key BNB from config.ini
-    PRIVATE_KEY = config.get('BNB', 'private_key')
-
     # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
+    # Load BNB deposit address from addresses table
+    cursor.execute('SELECT address FROM addresses WHERE user_id = %s AND private_key IS NULL', (user_id,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('BNB deposit address not found.')
+        return
+    bnb_deposit_address = result[0]
     gas_limit = web3.eth.estimateGas({
-        'from': PRIVATE_KEY,
+        'from': bnb_deposit_address,
         'to': address,
         'value': 0,
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[web3.toChecksumAddress(address), web3.toWei(amount, 'ether')])
