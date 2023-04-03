@@ -257,7 +257,7 @@ def withdraw(update: Update, context: CallbackContext):
     address = args[0]
     amount = Decimal(args[1]) * Decimal(10 ** 18)
     if amount < 1000000 * Decimal(10 ** 18):
-        update.message.reply_text('Minimum withdrawal amount is 1000 tokens.')
+        update.message.reply_text('Minimum withdrawal amount is 1000000 tokens.')
         return
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
     result = cursor.fetchone()
@@ -271,7 +271,7 @@ def withdraw(update: Update, context: CallbackContext):
     # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
     gas_limit = web3.eth.estimateGas({
-        'from': BEP20_DEPOSIT_ADDRESS,
+        'from': PRIVATE_KEY,
         'to': address,
         'value': 0,
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, amount])
