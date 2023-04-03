@@ -295,7 +295,7 @@ def transfer(update: Update, context: CallbackContext):
     # Deduct fees from deposit address
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (fees, DEPOSIT_ADDRESS_ID))
     # Save transfer to database
-    cursor.execute('INSERT INTO transfers (sender_id, recipient_id, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s)', (sender_id, recipient_id, amount, fees, receipt.transactionHash.hex()))
+cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (sender_id, update.message.from_user.username, recipient_id, recipient_username, amount, fees, receipt.transactionHash.hex()))
     db.commit()
     # Send message to sender
     sender_message = f'You transferred {amount / Decimal(10 ** 18)} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
