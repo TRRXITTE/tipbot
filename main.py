@@ -225,7 +225,7 @@ def balance(update: Update, context: CallbackContext):
         # Calculate withdrawable balance
         withdrawable_balance = balance - total_withdrawals - total_fees
         # Get BNB balance from balances table
-        cursor.execute('SELECT bnb_balance FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
+        cursor.execute('SELECT bnb_balance FROM balances WHERE user_id = %s AND address = %s', (user_id, address))
         result = cursor.fetchone()
         bnb_balance = Decimal(result[0] or 0)
         # Calculate fees
