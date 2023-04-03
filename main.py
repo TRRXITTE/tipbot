@@ -169,7 +169,7 @@ def balance(update: Update, context: CallbackContext):
         if balance >= 1000000:
             fees = int(balance * 0.01)
         # Send message to user
-        message = f'Your balance is: {balance} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
+        message = f'Your balance is: {balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance / 10 ** 18} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
         context.bot.send_message(chat_id=user_id, text=message)
     else:
         update.message.reply_text('This command can only be used in a private chat.')
@@ -194,8 +194,8 @@ def withdraw(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /withdraw <address> <amount>')
         return
     address = args[0]
-    amount = Decimal(args[1])
-    if amount < 1000:
+    amount = Decimal(args[1]) * Decimal(10 ** 18)
+    if amount < 1000000 * Decimal(10 ** 18):
         update.message.reply_text('Minimum withdrawal amount is 1000 tokens.')
         return
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
