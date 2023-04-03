@@ -123,7 +123,7 @@ def deposit(update: Update, context: CallbackContext):
             update.message.reply_text('Error: Invalid deposit address generated. Please try again.')
             return
         # Insert new address into database
-        cursor.execute('INSERT INTO addresses (user_id, address, private_key) VALUES (%s, %s, %s)', (user_id, address, private_key.hex()))
+        cursor.execute('INSERT INTO addresses (user_id, address, private_key) VALUES (%s, %s, %s)', (user_id, address, private_key))
         db.commit()
     else:
         address = result[0]
