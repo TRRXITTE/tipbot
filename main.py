@@ -213,31 +213,38 @@ def balance(update: Update, context: CallbackContext):
             return
         address = result[0]
         balance = result[1]
+
         # Get balance of NYANTE contract
         nyante_balance = nyante_contract.functions.balanceOf(address).call()
+
         # Get total withdrawals and fees from transfers table
         cursor.execute('SELECT SUM(amount) FROM transfers WHERE sender_id = %s', (user_id,))
         result = cursor.fetchone()
         total_withdrawals = Decimal(result[0] or 0)
+
         cursor.execute('SELECT SUM(fees) FROM transfers WHERE sender_id = %s', (user_id,))
         result = cursor.fetchone()
         total_fees = Decimal(result[0] or 0)
+
         # Calculate withdrawable balance
         withdrawable_balance = balance - total_withdrawals - total_fees
+
         # Get BNB balance from balances table
         cursor.execute('SELECT bnb_balance FROM balances WHERE user_id = %s AND address = %s', (user_id, address))
         result = cursor.fetchone()
         bnb_balance = Decimal(result[0] or 0)
+
         # Calculate fees
         fees = Decimal('0')
         if balance >= Decimal('1000000'):
             fees = balance * Decimal('0.01')
             fees = fees.quantize(Decimal('0.00001'))
+
         # Send message to user
         message = f'Your balance is: {int(balance)} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {int(nyante_balance / 10 ** 18)} NYANTE\n\nYou have withdrawn a total of {int(total_withdrawals)} NYANTE with {int(total_fees)} NYANTE in fees.\n\nYour withdrawable balance is: {int(withdrawable_balance)} NYANTE\n\nYour BNB balance is: {bnb_balance:.8f}\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
         context.bot.send_message(chat_id=user_id, text=message)
-        else:
-            update.message.reply_text('This command can only be used in a private chat.')
+    else:
+        update.message.reply_text('This command can only be used in a private chat.')
         
 
 def myaddress(update: Update, context: CallbackContext):
