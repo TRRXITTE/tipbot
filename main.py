@@ -281,8 +281,12 @@ def transfer(update: Update, context: CallbackContext):
     # Update balances in database
     cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
+    # Calculate fees
+    fees = int(amount * 0.01)
+    # Deduct fees from deposit address
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (fees, DEPOSIT_ADDRESS_ID))
     # Save transfer to database
-    cursor.execute('INSERT INTO transfers (sender_id, recipient_id, amount, tx_hash) VALUES (%s, %s, %s, %s)', (sender_id, recipient_id, amount, receipt.transactionHash.hex()))
+    cursor.execute('INSERT INTO transfers (sender_id, recipient_id, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s)', (sender_id, recipient_id, amount, fees, receipt.transactionHash.hex()))
     db.commit()
     # Send message to sender
     sender_message = f'You transferred {amount} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
@@ -294,8 +298,9 @@ def transfer(update: Update, context: CallbackContext):
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
     result = cursor.fetchone()
     if result[0] >= 1000000:
-        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable. Please use the withdrawal function.'
+        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable. Please contact the administrator to initiate a withdrawal.'
         context.bot.send_message(chat_id=recipient_id, text=recipient_message)
+
 
 def rain(update: Update, context: CallbackContext):
     """Distribute tokens to a group of users."""
