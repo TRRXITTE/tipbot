@@ -239,7 +239,7 @@ def withdraw(update: Update, context: CallbackContext):
         'gas': gas_limit,
         'to': address,
         'value': 0,
-        'data': b'',
+        'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, amount]),
     }
     # Sign transaction with account
     signed_tx = account.sign_transaction(tx)
@@ -249,9 +249,12 @@ def withdraw(update: Update, context: CallbackContext):
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s AND address = %s', (fee, user_id, BNB_DEPOSIT_ADDRESS))
     # Update balance in database
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+    # Save transfer to database
+    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, fee, tx_hash.hex()))
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
+    
 def transfer(update: Update, context: CallbackContext):
     """Transfer NYANTE tokens from one user to another."""
     # Get sender and recipient user IDs and amount from message
