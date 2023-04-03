@@ -130,7 +130,7 @@ def deposit(update: Update, context: CallbackContext):
         private_key = result[1]
     # Get balance of NYANTE contract
     nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
-    update.message.reply_text(f'Your deposit address is: 0x{address}\nYour private key is: {private_key}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: {nyante_balance}')
+    update.message.reply_text(f'Your deposit address is: {address}\n\nYour private key is: {private_key}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount:{nyante_balance} Nyantereum International')
     
 
 def privkey(update: Update, context: CallbackContext):
