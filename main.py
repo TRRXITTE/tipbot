@@ -161,6 +161,40 @@ def withdraw(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
+    def tip(update: Update, context: CallbackContext):
+    """Tip another user with tokens."""
+    user_id = update.message.from_user.id
+    args = context.args
+    if len(args) != 2:
+        update.message.reply_text('Usage: /tip <user> <amount>')
+        return
+    target_user = args[0]
+    amount = Decimal(args[1])
+    if amount < 1:
+        update.message.reply_text('Minimum tip amount is 1 token.')
+        return
+    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('You do not have any tokens to tip.')
+        return
+    balance = Decimal(result[0])
+    if balance < amount:
+        update.message.reply_text('Insufficient balance.')
+        return
+    # Get target user's user_id
+    cursor.execute('SELECT user_id FROM users WHERE username = %s', (target_user,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text(f'User {target_user} not found.')
+        return
+    target_user_id = result[0]
+    # Update balances in database
+    cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, target_user_id))
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+    db.commit()
+    update.message.reply_text(f'You tipped {target_user} {amount} tokens.')
+
 # Initialize the Telegram bot
 updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
 
