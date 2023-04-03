@@ -293,36 +293,42 @@ def transfer(update: Update, context: CallbackContext):
     recipient_id = result[0]
     # Check if recipient is the withdraw address
     if recipient_id == WITHDRAW_ADDRESS_ID:
-        update.message.reply_text('Error: Cannot transfer tokens to the withdraw address.')
-        return
-    # Transfer NYANTE tokens
-    recipient_address = get_address(recipient_id)
-    tx_hash = nyante_contract.functions.transfer(recipient_address, amount).transact({'from': sender_address})
-    # Wait for transaction to be mined
-    receipt = web3.eth.waitForTransactionReceipt(tx_hash)
-    # Update balances in database
-    cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
-    # Calculate fees
-    fees = int(amount * Decimal(0.01))
-    # Deduct fees from deposit address
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (fees, DEPOSIT_ADDRESS_ID))
-# Save transfer to database
-cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, fee, tx_hash.hex()))
-db.commit()
-update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
-    # Send message to sender
-    sender_message = f'You transferred {amount / Decimal(10 ** 18)} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
-    context.bot.send_message(chat_id=sender_id, text=sender_message)
-    # Send message to recipient
-    recipient_message = f'You received {amount / Decimal(10 ** 18)} NYANTE from {update.message.from_user.username}. Transaction hash: {receipt.transactionHash.hex()}'
-    context.bot.send_message(chat_id=recipient_id, text=recipient_message)
-    # Check if recipient balance is above 1000000 and send message to recipient
-    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
-    result = cursor.fetchone()
-    if result[0] >= Decimal(1000000) * Decimal(10 ** 18):
-        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable.'
+        # Send NYANTE tokens to withdraw address
+        tx_hash = nyante_contract.functions.transfer(WITHDRAW_ADDRESS, amount).transact({'from': sender_address})
+        # Wait for transaction to be mined
+        receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+        # Update balances in database
+        cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
+        # Calculate fees
+        fees = int(amount * Decimal(0.01))
+        # Deduct fees from deposit address
+        cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (fees, DEPOSIT_ADDRESS_ID))
+        # Save transfer to database
+        cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (sender_id, update.message.from_user.username, WITHDRAW_ADDRESS_ID, 'Withdraw Address', amount, fees, tx_hash.hex()))
+        db.commit()
+        update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
+        # Send message to sender
+        sender_message = f'You withdrew {amount / Decimal(10 ** 18)} NYANTE to the withdraw address. Transaction hash: {receipt.transactionHash.hex()}'
+        context.bot.send_message(chat_id=sender_id, text=sender_message)
+    else:
+        # Save transfer to database
+        cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees) VALUES (%s, %s, %s, %s, %s, %s)', (sender_id, update.message.from_user.username, recipient_id, recipient_username, amount, 0))
+        db.commit()
+        # Update balances in database
+        cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
+        cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
+        # Send message to sender
+        sender_message = f'You transferred {amount / Decimal(10 ** 18)} NYANTE to {recipient_username}.'
+        context.bot.send_message(chat_id=sender_id, text=sender_message)
+        # Send message to recipient
+        recipient_message = f'You received {amount / Decimal(10 ** 18)} NYANTE from {update.message.from_user.username}.'
         context.bot.send_message(chat_id=recipient_id, text=recipient_message)
+        # Check if recipient balance is above 1000000 and send message to recipient
+        cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
+        result = cursor.fetchone()
+        if result[0] >= Decimal(1000000) * Decimal(10 ** 18):
+            recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable.'
+            context.bot.send_message(chat_id=recipient_id, text=recipient_message)
 
 
 def rain(update: Update, context: CallbackContext):
