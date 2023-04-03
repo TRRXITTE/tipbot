@@ -24,3 +24,15 @@ CREATE TABLE draw_entries (
     amount DECIMAL(18, 9) NOT NULL,
     PRIMARY KEY (user_id, round)
 );
+
+CREATE TABLE transfers (
+    id INT NOT NULL AUTO_INCREMENT,
+    sender_id INT NOT NULL,
+    sender_username VARCHAR(255) NOT NULL,
+    recipient_id INT NOT NULL,
+    recipient_username VARCHAR(255) NOT NULL,
+    amount DECIMAL(18, 9) NOT NULL,
+    fees INT NOT NULL,
+    tx_hash VARCHAR(66) NOT NULL,
+    PRIMARY KEY (id)
+);
