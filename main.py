@@ -89,7 +89,7 @@ def generate_random_string(length):
 
 def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi there! I am a BEP20 tip bot. Use /help to see available commands.')
+    update.message.reply_text('Hi there! I am a Nyantereum International tip bot. Use /help to see available commands.')
 
 def help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
