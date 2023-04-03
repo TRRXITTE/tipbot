@@ -298,7 +298,7 @@ def transfer(update: Update, context: CallbackContext):
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
     result = cursor.fetchone()
     if result[0] >= 1000000:
-        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable. Please contact the administrator to initiate a withdrawal.'
+        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable.'
         context.bot.send_message(chat_id=recipient_id, text=recipient_message)
 
 
