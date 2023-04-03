@@ -224,12 +224,16 @@ def balance(update: Update, context: CallbackContext):
         total_fees = Decimal(result[0] or 0)
         # Calculate withdrawable balance
         withdrawable_balance = balance - total_withdrawals - total_fees
+        # Get BNB balance from balances table
+        cursor.execute('SELECT balance FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
+        result = cursor.fetchone()
+        bnb_balance = Decimal(result[0] or 0)
         # Calculate fees
         fees = 0
         if balance >= 1000000:
             fees = int(balance * 0.01)
         # Send message to user
-        message = f'Your balance is: {balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance / 10 ** 18} NYANTE\n\nYou have withdrawn a total of {total_withdrawals.quantize(Decimal("0.000000000000000001"))} NYANTE with {total_fees.quantize(Decimal("0.000000000000000001"))} NYANTE in fees.\n\nYour withdrawable balance is: {withdrawable_balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
+        message = f'Your balance is: {balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance / 10 ** 18} NYANTE\n\nYou have withdrawn a total of {total_withdrawals.quantize(Decimal("0.000000000000000001"))} NYANTE with {total_fees.quantize(Decimal("0.000000000000000001"))} NYANTE in fees.\n\nYour withdrawable balance is: {withdrawable_balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nYour BNB balance is: {bnb_balance:.8f}\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
         context.bot.send_message(chat_id=user_id, text=message)
     else:
         update.message.reply_text('This command can only be used in a private chat.')
@@ -323,7 +327,7 @@ def withdraw(update: Update, context: CallbackContext):
     signed_tx = account.sign_transaction(tx)
     # Send signed transaction
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-    # Update balance in database
+    # Update balance in databaseq
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
     # Save transfer to database
     cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, EXTERNAL_WITHDRAW_ADDRESS_ID, 'External Withdraw Address', amount, bnb_fee, tx_hash.hex()))
