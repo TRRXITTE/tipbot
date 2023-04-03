@@ -233,7 +233,7 @@ def rain(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'You rained {amount} tokens on {num_users} users in group {group}.')
 
-    def draw(update: Update, context: CallbackContext):
+def draw(update: Update, context: CallbackContext):
     """Participate in a draw and have a chance to win tokens."""
     user_id = update.message.from_user.id
     args = context.args
