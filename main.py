@@ -255,6 +255,9 @@ def withdraw(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /withdraw <address> <amount>')
         return
     address = args[0]
+    if not web3.isAddress(address):
+        update.message.reply_text('Invalid Ethereum address.')
+        return
     amount = Decimal(args[1]) * Decimal(10 ** 18)
     if amount < 1000000 * Decimal(10 ** 18):
         update.message.reply_text('Minimum withdrawal amount is 1000000 tokens.')
@@ -272,7 +275,7 @@ def withdraw(update: Update, context: CallbackContext):
     # load private_key BNB from config.ini
     PRIVATE_KEY = config.get('BNB', 'private_key')
 
-     # Estimate gas cost of transaction
+    # Estimate gas cost of transaction
     gas_price = web3.eth.gas_price
     gas_limit = web3.eth.estimateGas({
         'from': PRIVATE_KEY,
