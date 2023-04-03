@@ -256,8 +256,15 @@ def transfer(update: Update, context: CallbackContext):
     """Transfer NYANTE tokens from one user to another."""
     # Get sender and recipient user IDs and amount from message
     sender_id = update.message.from_user.id
-    recipient_username = context.args[0]
-    amount = Decimal(context.args[1]) * Decimal(10 ** 18)
+    if context.args[0] == '/tip':
+        recipient_username = context.args[2]
+        amount = Decimal(context.args[1]) * Decimal(10 ** 18)
+    elif context.args[0] == '/transfer':
+        recipient_username = context.args[0]
+        amount = Decimal(context.args[1]) * Decimal(10 ** 18)
+    else:
+        update.message.reply_text('Usage: /tip <amount> NYANTE @username or /transfer <amount> NYANTE @username')
+        return
     # Check if sender has enough NYANTE tokens
     sender_address = get_address(sender_id)
     sender_balance = nyante_contract.functions.balanceOf(sender_address).call()
