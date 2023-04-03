@@ -3,6 +3,7 @@
 
 ## Installation
 * Clone the repository: git clone https://github.com/TRRXITTE/tipbot
++ Install MariaDB and configure: https://devopscube.com/install-mariadb-on-ubuntu/
 * Install the required packages: pip install -r requirements.txt
 * Create a .env file in the root directory and add the following variables:
 ```
