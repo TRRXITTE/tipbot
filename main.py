@@ -260,7 +260,7 @@ def withdraw(update: Update, context: CallbackContext):
     if not web3.isAddress(address):
         update.message.reply_text('Invalid address.')
         return
-    address = web3.toChecksumAddress(address)
+    address = Web3.toChecksumAddress(address)
     amount = Decimal(args[1]) * Decimal(10 ** 18)
     if amount < 1000000 * Decimal(10 ** 18):
         update.message.reply_text('Minimum withdrawal amount is 1000000 tokens.')
@@ -271,7 +271,7 @@ def withdraw(update: Update, context: CallbackContext):
         update.message.reply_text('You do not have any tokens to withdraw.')
         return
     balance = Decimal(result[0])
-    bnb_deposit_address = result[1]
+    bnb_deposit_address = Web3.toChecksumAddress(result[1])
     if balance < amount:
         update.message.reply_text('Insufficient balance.')
         return
@@ -280,7 +280,7 @@ def withdraw(update: Update, context: CallbackContext):
     gas_price = web3.eth.gas_price
     gas_limit = web3.eth.estimateGas({
         'from': bnb_deposit_address,
-        'to': '0x0c27b49db71a9fb6e9cf97f7cbb0cf3f0e97f920',
+        'to': Web3.toChecksumAddress(NYANTE_TOKEN_ADDRESS),
         'value': 0,
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, web3.toWei(amount, 'ether')])
     })
