@@ -1,7 +1,7 @@
 CREATE TABLE users (
     user_id INT NOT NULL,
     username VARCHAR(255) NOT NULL,
-    "group" VARCHAR(255) NOT NULL,
+    `group` VARCHAR(255) NOT NULL,
     PRIMARY KEY (user_id)
 );
 
