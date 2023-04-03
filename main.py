@@ -257,7 +257,7 @@ def transfer(update: Update, context: CallbackContext):
     # Get sender and recipient user IDs and amount from message
     sender_id = update.message.from_user.id
     recipient_username = context.args[0]
-    amount = int(context.args[1])
+    amount = Decimal(context.args[1]) * Decimal(10 ** 18)
     # Check if sender has enough NYANTE tokens
     sender_address = get_address(sender_id)
     sender_balance = nyante_contract.functions.balanceOf(sender_address).call()
@@ -284,22 +284,22 @@ def transfer(update: Update, context: CallbackContext):
     cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
     # Calculate fees
-    fees = int(amount * 0.01)
+    fees = int(amount * Decimal(0.01))
     # Deduct fees from deposit address
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (fees, DEPOSIT_ADDRESS_ID))
     # Save transfer to database
     cursor.execute('INSERT INTO transfers (sender_id, recipient_id, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s)', (sender_id, recipient_id, amount, fees, receipt.transactionHash.hex()))
     db.commit()
     # Send message to sender
-    sender_message = f'You transferred {amount} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
+    sender_message = f'You transferred {amount / Decimal(10 ** 18)} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
     context.bot.send_message(chat_id=sender_id, text=sender_message)
     # Send message to recipient
-    recipient_message = f'You received {amount} NYANTE from {update.message.from_user.username}. Transaction hash: {receipt.transactionHash.hex()}'
+    recipient_message = f'You received {amount / Decimal(10 ** 18)} NYANTE from {update.message.from_user.username}. Transaction hash: {receipt.transactionHash.hex()}'
     context.bot.send_message(chat_id=recipient_id, text=recipient_message)
     # Check if recipient balance is above 1000000 and send message to recipient
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
     result = cursor.fetchone()
-    if result[0] >= 1000000:
+    if result[0] >= Decimal(1000000) * Decimal(10 ** 18):
         recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable.'
         context.bot.send_message(chat_id=recipient_id, text=recipient_message)
 
@@ -312,8 +312,8 @@ def rain(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /rain <group> <amount>')
         return
     group = args[0]
-    amount = Decimal(args[1])
-    if amount < 1:
+    amount = Decimal(args[1]) * Decimal(10 ** 18)
+    if amount < Decimal(10 ** 18):
         update.message.reply_text('Minimum rain amount is 1 token.')
         return
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
@@ -340,7 +340,7 @@ def rain(update: Update, context: CallbackContext):
         cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount_per_user, user_id))
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
     db.commit()
-    update.message.reply_text(f'You rained {amount} tokens on {num_users} users in group {group}.')
+    update.message.reply_text(f'You rained {amount / Decimal(10 ** 18)} tokens on {num_users} users in group {group}.')
 
 def draw(update: Update, context: CallbackContext):
     """Participate in a draw and have a chance to win tokens."""
@@ -349,8 +349,8 @@ def draw(update: Update, context: CallbackContext):
     if len(args) != 3:
         update.message.reply_text('Usage: /draw <amount> <hashtag> <message>')
         return
-    amount = Decimal(args[0])
-    if amount < 1:
+    amount = Decimal(args[0]) * Decimal(10 ** 18)
+    if amount < Decimal(10 ** 18):
         update.message.reply_text('Minimum draw amount is 1 token.')
         return
     hashtag = args[1]
@@ -379,12 +379,12 @@ def draw(update: Update, context: CallbackContext):
             cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount_per_participant, participant))
         cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
         db.commit()
-        update.message.reply_text(f'{num_participants} participants entered the draw with {hashtag}. Each participant won {amount_per_participant} tokens. Message: {message}')
+        update.message.reply_text(f'{num_participants} participants entered the draw with {hashtag}. Each participant won {amount_per_participant / Decimal(10 ** 18)} tokens. Message: {message}')
     else:
         # Add entry to draw_entries table
         cursor.execute('INSERT INTO draw_entries (user_id, round, amount) VALUES (%s, %s, %s)', (user_id, current_round, amount))
         db.commit()
-        update.message.reply_text(f'You have entered the draw with {amount} tokens. Hashtag: {hashtag}. Message: {message}')
+        update.message.reply_text(f'You have entered the draw with {amount / Decimal(10 ** 18)} tokens. Hashtag: {hashtag}. Message: {message}')
 
 # Initialize the Telegram bot
 updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
