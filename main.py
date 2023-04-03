@@ -195,6 +195,45 @@ def tip(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'You tipped {target_user} {amount} tokens.')
 
+
+    def rain(update: Update, context: CallbackContext):
+    """Distribute tokens to a group of users."""
+    user_id = update.message.from_user.id
+    args = context.args
+    if len(args) != 2:
+        update.message.reply_text('Usage: /rain <group> <amount>')
+        return
+    group = args[0]
+    amount = Decimal(args[1])
+    if amount < 1:
+        update.message.reply_text('Minimum rain amount is 1 token.')
+        return
+    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
+    result = cursor.fetchone()
+    if result is None:
+        update.message.reply_text('You do not have any tokens to rain.')
+        return
+    balance = Decimal(result[0])
+    if balance < amount:
+        update.message.reply_text('Insufficient balance.')
+        return
+    # Get list of users in group
+    cursor.execute('SELECT user_id FROM users WHERE "group" = %s', (group,))
+    results = cursor.fetchall()
+    if len(results) == 0:
+        update.message.reply_text(f'Group {group} not found.')
+        return
+    # Calculate amount to distribute to each user
+    num_users = len(results)
+    amount_per_user = amount / num_users
+    # Update balances in database
+    for result in results:
+        user_id = result[0]
+        cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount_per_user, user_id))
+    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
+    db.commit()
+    update.message.reply_text(f'You rained {amount} tokens on {num_users} users in group {group}.')
+
 # Initialize the Telegram bot
 updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
 
