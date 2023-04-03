@@ -175,7 +175,7 @@ def deposit(update: Update, context: CallbackContext):
         # Get balance of NYANTE contract
         nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
         # Get balance of user's address
-        balance = nyante_contract.functions.balanceOf(address).call()
+        balance / 10**18 = nyante_contract.functions.balanceOf(address).call()
         # Get balance of BNB
         bnb_balance = get_bnb_balance(address)
         if bnb_balance is None:
