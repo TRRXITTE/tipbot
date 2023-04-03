@@ -103,7 +103,6 @@ def help(update: Update, context: CallbackContext):
 /draw <amount> <num_winners> <hashtag> - Start a giveaway and randomly reward users who reply with the specified hashtag.
 /help - Show this help message.'''
     update.message.reply_text(help_text)
-
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
     user_id = update.message.from_user.id
@@ -112,8 +111,7 @@ def deposit(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.')
 
-    
-    def balance(update: Update, context: CallbackContext):
+def balance(update: Update, context: CallbackContext):
     """Get the user's token balance."""
     user_id = update.message.from_user.id
     cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
@@ -123,7 +121,6 @@ def deposit(update: Update, context: CallbackContext):
     else:
         balance = Decimal(result[0])
         update.message.reply_text(f'Your balance is: {balance} tokens.')
-
 
 def myaddress(update: Update, context: CallbackContext):
     """Show the user's deposit address."""
