@@ -107,9 +107,9 @@ def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
     user_id = update.message.from_user.id
     address = generate_random_string(32)
-    cursor.execute('INSERT INTO addresses (user_id, address) VALUES (%s, %s)', (user_id, address))
+    cursor.execute('INSERT INTO addresses (user_id, address) VALUES (%s, %s) ON DUPLICATE KEY UPDATE address = %s', (user_id, address, address))
     db.commit()
-    update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.')
+    update.message.reply_text(f'Your deposit address is: 0x{address}\n\nPlease use this address to deposit BNB for transaction fees.')
 
 def balance(update: Update, context: CallbackContext):
     """Get the user's token balance."""
