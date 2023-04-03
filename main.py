@@ -175,7 +175,7 @@ def deposit(update: Update, context: CallbackContext):
         # Get balance of NYANTE contract
         nyante_balance = nyante_contract.functions.balanceOf(NYANTE_DEPOSIT_ADDRESS).call()
         # Get balance of user's address
-        balance / 10**18 = nyante_contract.functions.balanceOf(address).call()
+        balance = nyante_contract.functions.balanceOf(address).call()
         # Get balance of BNB
         bnb_balance = get_bnb_balance(address)
         if bnb_balance is None:
@@ -183,7 +183,7 @@ def deposit(update: Update, context: CallbackContext):
         # Save deposit address and balances to balances table
         cursor.execute('INSERT INTO balances (user_id, address, balance, bnb_balance) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE address = %s, balance = %s, bnb_balance = %s', (user_id, address, balance, bnb_balance, address, balance, bnb_balance))
         db.commit()
-        message = f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {balance} \nNyantereum International\n\nBinance [BNB]: Amount {bnb_balance:.8f}'
+        message = f'Your deposit address is: {address}\n\nPlease use this address to deposit Nyantereum International for transfer.\n\nThe current balance of NYANTE tokens is: \nAmount: {balance:.18f}' \nNyantereum International\n\nBinance [BNB]: Amount {bnb_balance:.8f}'
         context.bot.send_message(chat_id=user_id, text=message)
         # Send private key in a direct message
         context.bot.send_message(chat_id=user_id, text=f'Your private key is:\n{private_key}\n\nPlease keep your private key safe and do not share it with anyone.')
