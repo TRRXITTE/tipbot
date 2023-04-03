@@ -149,15 +149,28 @@ def privkey(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=user_id, text='Please keep your private key and address safe and do not share them with anyone.', quote=False)
 
 def balance(update: Update, context: CallbackContext):
-    """Get the user's token balance."""
+    """Get the NYANTE balance of the user."""
     user_id = update.message.from_user.id
-    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (user_id,))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text('You do not have any tokens.')
+    if update.message.chat.type == 'private':
+        # Get user's address and balance from database
+        cursor.execute('SELECT address, balance FROM balances WHERE user_id = %s', (user_id,))
+        result = cursor.fetchone()
+        if result is None:
+            update.message.reply_text('Error: No deposit address found. Please use the /deposit command to generate a deposit address.')
+            return
+        address = result[0]
+        balance = result[1]
+        # Get balance of NYANTE contract
+        nyante_balance = nyante_contract.functions.balanceOf(address).call()
+        # Calculate fees
+        fees = 0
+        if balance >= 1000000:
+            fees = int(balance * 0.01)
+        # Send message to user
+        message = f'Your balance is: {balance} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
+        context.bot.send_message(chat_id=user_id, text=message)
     else:
-        balance = Decimal(result[0])
-        update.message.reply_text(f'Your balance is: {balance} tokens.')
+        update.message.reply_text('This command can only be used in a private chat.')
 
 def myaddress(update: Update, context: CallbackContext):
     """Show the user's deposit address and balance."""
@@ -256,6 +269,10 @@ def transfer(update: Update, context: CallbackContext):
         update.message.reply_text(f'User {recipient_username} not found.')
         return
     recipient_id = result[0]
+    # Check if recipient is the withdraw address
+    if recipient_id == WITHDRAW_ADDRESS_ID:
+        update.message.reply_text('Error: Cannot transfer tokens to the withdraw address.')
+        return
     # Transfer NYANTE tokens
     recipient_address = get_address(recipient_id)
     tx_hash = nyante_contract.functions.transfer(recipient_address, amount).transact({'from': sender_address})
@@ -264,6 +281,8 @@ def transfer(update: Update, context: CallbackContext):
     # Update balances in database
     cursor.execute('UPDATE balances SET balance = balance + %s WHERE user_id = %s', (amount, recipient_id))
     cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, sender_id))
+    # Save transfer to database
+    cursor.execute('INSERT INTO transfers (sender_id, recipient_id, amount, tx_hash) VALUES (%s, %s, %s, %s)', (sender_id, recipient_id, amount, receipt.transactionHash.hex()))
     db.commit()
     # Send message to sender
     sender_message = f'You transferred {amount} NYANTE to {recipient_username}. Transaction hash: {receipt.transactionHash.hex()}'
@@ -271,6 +290,12 @@ def transfer(update: Update, context: CallbackContext):
     # Send message to recipient
     recipient_message = f'You received {amount} NYANTE from {update.message.from_user.username}. Transaction hash: {receipt.transactionHash.hex()}'
     context.bot.send_message(chat_id=recipient_id, text=recipient_message)
+    # Check if recipient balance is above 1000000 and send message to recipient
+    cursor.execute('SELECT balance FROM balances WHERE user_id = %s', (recipient_id,))
+    result = cursor.fetchone()
+    if result[0] >= 1000000:
+        recipient_message = f'Your balance is now above 1,000,000 NYANTE and is withdrawable. Please use the withdrawal function.'
+        context.bot.send_message(chat_id=recipient_id, text=recipient_message)
 
 def rain(update: Update, context: CallbackContext):
     """Distribute tokens to a group of users."""
