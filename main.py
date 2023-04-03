@@ -285,7 +285,7 @@ def withdraw(update: Update, context: CallbackContext):
         return
     bnb_deposit_address = result[0]
     gas_limit = web3.eth.estimateGas({
-        'from': bnb_deposit_address,
+        'from': BNB_DEPOSIT_ADDRESS,
         'to': address,
         'value': 0,
         'data': nyante_contract.encodeABI(fn_name='transfer', args=[web3.toChecksumAddress(address), web3.toWei(amount, 'ether')])
