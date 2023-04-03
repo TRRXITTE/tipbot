@@ -164,15 +164,25 @@ def balance(update: Update, context: CallbackContext):
         balance = result[1]
         # Get balance of NYANTE contract
         nyante_balance = nyante_contract.functions.balanceOf(address).call()
+        # Get total withdrawals and fees from transfers table
+        cursor.execute('SELECT SUM(amount) FROM transfers WHERE sender_id = %s', (user_id,))
+        result = cursor.fetchone()
+        total_withdrawals = Decimal(result[0] or 0)
+        cursor.execute('SELECT SUM(fees) FROM transfers WHERE sender_id = %s', (user_id,))
+        result = cursor.fetchone()
+        total_fees = Decimal(result[0] or 0)
+        # Calculate withdrawable balance
+        withdrawable_balance = balance - total_withdrawals - total_fees
         # Calculate fees
         fees = 0
         if balance >= 1000000:
             fees = int(balance * 0.01)
         # Send message to user
-        message = f'Your balance is: {balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance / 10 ** 18} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
+        message = f'Your balance is: {balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {nyante_balance / 10 ** 18} NYANTE\n\nYou have withdrawn a total of {total_withdrawals.quantize(Decimal("0.000000000000000001"))} NYANTE with {total_fees.quantize(Decimal("0.000000000000000001"))} NYANTE in fees.\n\nYour withdrawable balance is: {withdrawable_balance.quantize(Decimal("0.000000000000000001"))} NYANTE\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
         context.bot.send_message(chat_id=user_id, text=message)
     else:
         update.message.reply_text('This command can only be used in a private chat.')
+        
 
 def myaddress(update: Update, context: CallbackContext):
     """Show the user's deposit address and balance."""
@@ -254,7 +264,7 @@ def withdraw(update: Update, context: CallbackContext):
     db.commit()
     update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
 
-    
+
 def transfer(update: Update, context: CallbackContext):
     """Transfer NYANTE tokens from one user to another."""
     # Get sender and recipient user IDs and amount from message
