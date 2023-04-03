@@ -247,6 +247,8 @@ def myaddress(update: Update, context: CallbackContext):
         balance = Decimal(result[1])
         update.message.reply_text(f'Your deposit address is: {address}\n\nPlease use this address to deposit BNB for transaction fees.\n\nYour balance is: {balance} tokens.')
 
+NYANTE_TOKEN_ADDRESS = config.get('NYANTE', 'contract_address')
+
 def withdraw(update: Update, context: CallbackContext):
     """Withdraw tokens to an external address."""
     user_id = update.message.from_user.id
