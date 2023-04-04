@@ -547,36 +547,12 @@ def on_new_chat_members(update: Update, context: CallbackContext):
     """Automatically run the register_all command when a new member joins the chat."""
     register_all(update, context)
 
-# Define message handlers
-start_handler = CommandHandler('start', start)
-help_handler = CommandHandler('help', help)
-register_handler = CommandHandler('register', register)
-register_all_handler = CommandHandler('register_all', register_all)
-deposit_handler = CommandHandler('deposit', deposit)
-withdraw_handler = CommandHandler('withdraw', withdraw)
-balance_handler = CommandHandler('balance', balance)
-rain_handler = CommandHandler('rain', rain)
-draw_handler = CommandHandler('draw', draw)
-on_new_chat_members_handler = MessageHandler(Filters.status_update.new_chat_members, on_new_chat_members)
-
-# Add message handlers to dispatcher
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(help_handler)
-dispatcher.add_handler(register_handler)
-dispatcher.add_handler(register_all_handler)
-dispatcher.add_handler(deposit_handler)
-dispatcher.add_handler(withdraw_handler)
-dispatcher.add_handler(balance_handler)
-dispatcher.add_handler(tip_handler)
-dispatcher.add_handler(transfer_handler)
-dispatcher.add_handler(rain_handler)
-dispatcher.add_handler(draw_handler)
-dispatcher.add_handler(on_new_chat_members_handler)
 
 # Add command handlers
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(CommandHandler('register', register))
+dispatcher.add_handler(CommandHandler('register_all', register_all))
 dispatcher.add_handler(CommandHandler('deposit', deposit))
 dispatcher.add_handler(CommandHandler('myaddress', myaddress))
 dispatcher.add_handler(CommandHandler('withdraw', withdraw))
