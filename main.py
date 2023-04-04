@@ -241,7 +241,7 @@ def balance(update: Update, context: CallbackContext):
             fees = fees.quantize(Decimal('0.00001'))
 
         # Send message to user
-        message = f'Your balance is: {int(balance)} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {int(nyante_balance / 10 ** 18)} NYANTE\n\nYou have withdrawn a total of {int(total_withdrawals)} NYANTE with {int(total_fees)} NYANTE in fees.\n\nYour withdrawable balance is: {int(withdrawable_balance)} NYANTE\n\nYour BNB balance is: {bnb_balance:.8f}\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
+        message = f'Your balance is: {round(float(balance / 10 ** 16), 2)} NYANTE\n\nThe current balance of NYANTE tokens on your deposit address ({address}) is: {int(nyante_balance / 10 ** 18)} NYANTE\n\nYou have withdrawn a total of {int(total_withdrawals)} NYANTE with {int(total_fees)} NYANTE in fees.\n\nYour withdrawable balance is: {round(float(withdrawable_balance / 10 ** 16), 2)} NYANTE\n\nYour BNB balance is: {bnb_balance:.8f}\n\nPlease note that balances above 1,000,000 NYANTE are withdrawable.'
         context.bot.send_message(chat_id=user_id, text=message)
     else:
         update.message.reply_text('This command can only be used in a private chat.')
