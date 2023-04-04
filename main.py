@@ -152,42 +152,6 @@ def get_bnb_balance(address):
     else:
         return None
 
-
-def register_all(update, context):
-    """Register all users in the chat and generate a BSC address for every user."""
-    chat_id = update.message.chat_id
-    if update.message.chat.type != 'supergroup':
-        update.message.reply_text('This command can only be used in a supergroup.')
-        return
-    # Get number of members in the chat
-    num_members = context.bot.get_chat_members_count(chat_id)
-    # Loop through each member in the chat
-    for i in range(num_members):
-        member = context.bot.get_chat_member(chat_id, i)
-        user_id = member.user.id
-        # Check if user is already registered
-        cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
-        result = cursor.fetchone()
-        if result is not None:
-            continue
-        # Generate new BSC address and private key
-        account = w3.eth.account.create()
-        address = account.address
-        private_key = account.privateKey.hex()
-        # Check if address is valid
-        if not Web3.isAddress(address):
-            continue
-        # Insert new address and private key into database
-        cursor.execute('INSERT INTO addresses (user_id, address, private_key) VALUES (%s, %s, %s)', (user_id, address, private_key))
-        db.commit()
-        # Insert new user into database
-        username = member.user.username
-        cursor.execute('INSERT INTO users (user_id, username) VALUES (%s, %s)', (user_id, username))
-        db.commit()
-    # Send confirmation message
-    message = 'All users in the chat have been registered with a BSC address.'
-    context.bot.send_message(chat_id=chat_id, text=message)
-
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
     user_id = update.message.from_user.id
@@ -552,7 +516,6 @@ def on_new_chat_members(update: Update, context: CallbackContext):
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(CommandHandler('register', register))
-dispatcher.add_handler(CommandHandler('register_all', register_all))
 dispatcher.add_handler(CommandHandler('deposit', deposit))
 dispatcher.add_handler(CommandHandler('myaddress', myaddress))
 dispatcher.add_handler(CommandHandler('withdraw', withdraw))
