@@ -316,68 +316,77 @@ def withdraw(update: Update, context: CallbackContext):
     if amount < 1000000 * Decimal(10 ** 18):
         update.message.reply_text('Minimum withdrawal amount is 1000000 tokens.')
         return
-    cursor.execute('SELECT balance, address FROM balances WHERE user_id = %s', (user_id,))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text('You do not have any tokens to withdraw.')
-        return
-    balance = Decimal(result[0])
-    bnb_deposit_address = Web3.toChecksumAddress(result[1])
-    if balance < amount:
+
+    # Get all addresses and balances from balances table
+    cursor.execute('SELECT address, balance FROM balances WHERE balance >= %s', (amount,))
+    results = cursor.fetchall()
+    if len(results) == 0:
         update.message.reply_text('Insufficient balance.')
         return
 
-    # Estimate gas cost of transaction
-    gas_price = web3.eth.gas_price
-    gas_limit = web3.eth.estimateGas({
-        'from': bnb_deposit_address,
-        'to': Web3.toChecksumAddress(NYANTE_TOKEN_ADDRESS),
-        'value': 0,
-        'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, web3.toWei(amount, 'ether')])
-    })
-    fee = gas_price * gas_limit
-    # Calculate BNB fee
-    bnb_fee = fee / Decimal(10 ** 18)
-    # Deduct BNB fee from user's balance
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s AND address = %s', (bnb_fee, user_id, BNB_DEPOSIT_ADDRESS))
-    # Check if user has enough BNB for fee
-    cursor.execute('SELECT balance FROM balances WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text('You do not have any BNB to pay for the transaction fee.')
+    # Calculate total balance and fees
+    total_balance = sum([Decimal(result[1]) for result in results])
+    fees = Decimal('0')
+    if total_balance >= Decimal('1000000'):
+        fees = total_balance * Decimal('0.01')
+        fees = fees.quantize(Decimal('0.00001'))
+
+    # Get transfer fee fund address from config file
+    transfer_fee_fund_address = config['transfer_fee_fund_address']
+
+    # Get balance of transfer fee fund address
+    transfer_fee_fund_balance = nyante_contract.functions.balanceOf(transfer_fee_fund_address).call()
+
+    # Check if transfer fee fund has enough balance to cover fees
+    if fees > transfer_fee_fund_balance:
+        update.message.reply_text('Error: Insufficient transfer fee fund balance. Please try again later.')
         return
-    bnb_balance = Decimal(result[0])
-    if bnb_balance < bnb_fee:
-        update.message.reply_text('Insufficient BNB balance to pay for the transaction fee.')
-        return
-    # Load private key securely from addresses table
-    cursor.execute('SELECT private_key FROM addresses WHERE user_id = %s AND address = %s', (user_id, BNB_DEPOSIT_ADDRESS))
-    result = cursor.fetchone()
-    if result is None:
-        update.message.reply_text('BNB private key not found.')
-        return
-    private_key = result[0]
-    account = Account.from_key(private_key)
+
+    # Create list of transfer objects
+    transfers = []
+    for result in results:
+        transfer = {
+            'address': result[0],
+            'amount': result[1],
+        }
+        transfers.append(transfer)
+
     # Create unsigned transaction
-    nonce = web3.eth.getTransactionCount(account.address)
+    nonce = web3.eth.getTransactionCount(transfer_fee_fund_address)
+    tx_data = nyante_contract.encodeABI(fn_name='multiTransfer', args=[transfers])
     tx = {
         'nonce': nonce,
-        'gasPrice': gas_price,
-        'gas': gas_limit,
+        'gasPrice': web3.eth.gas_price,
+        'gas': 2000000,
         'to': NYANTE_TOKEN_ADDRESS,
         'value': 0,
-        'data': nyante_contract.encodeABI(fn_name='transfer', args=[address, amount]),
+        'data': tx_data,
     }
-    # Sign transaction with account
+
+    # Sign transaction with transfer fee fund address private key
+    transfer_fee_fund_address_private_key = config['transfer_fee_fund_address_private_key']
+    account = Account.from_key(transfer_fee_fund_address_private_key)
     signed_tx = account.sign_transaction(tx)
+
     # Send signed transaction
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-    # Update balance in databaseq
-    cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s', (amount, user_id))
-    # Save transfer to database
-    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, EXTERNAL_WITHDRAW_ADDRESS_ID, 'External Withdraw Address', amount, bnb_fee, tx_hash.hex()))
+
+    # Update balances in database
+    for result in results:
+        cursor.execute('UPDATE balances SET balance = balance - %s WHERE user_id = %s AND address = %s', (result[1], user_id, result[0]))
     db.commit()
-    update.message.reply_text(f'Transaction sent: https://bscscan.com/tx/{tx_hash.hex()}')
+
+    # Update transfer fee fund balance in database
+    cursor.execute('UPDATE balances SET balance = balance + %s WHERE address = %s', (fees, transfer_fee_fund_address))
+    db.commit()
+
+    # Save transfer to database
+    cursor.execute('INSERT INTO transfers (sender_id, sender_username, recipient_id, recipient_username, amount, fees, tx_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)', (user_id, update.message.from_user.username, EXTERNAL_WITHDRAW_ADDRESS_ID, 'External Withdraw Address', total_balance, fees, tx_hash.hex()))
+    db.commit()
+
+    # Send confirmation message to user
+    message = f'{total_balance // 10 ** 18} NYANTE has been withdrawn to address {address} with a fee of {fees // 10 ** 18} NYANTE.\n\nTransaction hash: {tx_hash.hex()}'
+    context.bot.send_message(chat_id=user_id, text=message)
 
 
 def transfer(update: Update, context: CallbackContext):
