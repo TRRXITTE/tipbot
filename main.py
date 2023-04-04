@@ -159,10 +159,11 @@ def register_all(update, context):
     if update.message.chat.type != 'supergroup':
         update.message.reply_text('This command can only be used in a supergroup.')
         return
-    # Get list of members in the chat
-    members = context.bot.get_chat_members(chat_id)
+    # Get number of members in the chat
+    num_members = context.bot.get_chat_members_count(chat_id)
     # Loop through each member in the chat
-    for member in members:
+    for i in range(num_members):
+        member = context.bot.get_chat_member(chat_id, i)
         user_id = member.user.id
         # Check if user is already registered
         cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
