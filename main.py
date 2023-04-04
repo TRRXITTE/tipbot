@@ -153,7 +153,7 @@ def get_bnb_balance(address):
         return None
 
 
-        def register_all(update: Update, context: CallbackContext):
+def register_all(update: Update, context: CallbackContext):
     """Register all users in the chat and generate a BSC address."""
     chat_id = update.message.chat_id
     if update.message.chat.type != 'supergroup':
