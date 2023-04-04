@@ -101,9 +101,9 @@ def help(update: Update, context: CallbackContext):
     help_text = '''Available commands:
 /register - Create a BSC address
 /deposit - Get your deposit address for NYANTE.
-/withdraw <address> <amount> - Withdraw tokens to an external address.
+/withdraw <address> <amount> NYANTE - withdraw tokens to an external address.
 /balance - Get your token balance.
-/tip <amount> <username> - Send tokens to another user.
+/tip <amount> <NYANTE> <username> - Send tokens to another user.
 /rain <amount> - Send tokens to all active users in the chat.
 /draw <amount> <num_winners> <hashtag> - Start a giveaway and randomly reward users who reply with the specified hashtag.
 /help - Show this help message.'''
@@ -140,6 +140,7 @@ def register(update: Update, context: CallbackContext):
     message = f'You have been registered with the following BSC address:\n\n{address}\n\nPlease use this address to deposit BNB or BEP20 tokens to your account.'
     context.bot.send_message(chat_id=user_id, text=message)
 
+
 import requests
 
 def get_bnb_balance(address):
@@ -150,6 +151,42 @@ def get_bnb_balance(address):
         return balance
     else:
         return None
+
+
+        def register_all(update: Update, context: CallbackContext):
+    """Register all users in the chat and generate a BSC address."""
+    chat_id = update.message.chat_id
+    if update.message.chat.type != 'supergroup':
+        update.message.reply_text('This command can only be used in a supergroup.')
+        return
+    # Get number of members in the chat
+    num_members = context.bot.get_chat_members_count(chat_id)
+    # Loop through each member in the chat
+    for i in range(num_members):
+        member = context.bot.get_chat_member(chat_id, i)
+        user_id = member.user.id
+        # Check if user is already registered
+        cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
+        result = cursor.fetchone()
+        if result is not None:
+            continue
+        # Generate new BSC address and private key
+        account = w3.eth.account.create()
+        address = account.address
+        private_key = account.privateKey.hex()
+        # Check if address is valid
+        if not Web3.isAddress(address):
+            continue
+        # Insert new address and private key into database
+        cursor.execute('INSERT INTO addresses (user_id, address, private_key) VALUES (%s, %s, %s)', (user_id, address, private_key))
+        db.commit()
+        # Insert new user into database
+        username = member.user.username
+        cursor.execute('INSERT INTO users (user_id, username) VALUES (%s, %s)', (user_id, username))
+        db.commit()
+    # Send confirmation message
+    message = 'All users in the chat have been registered with a BSC address.'
+    context.bot.send_message(chat_id=chat_id, text=message)
 
 def deposit(update: Update, context: CallbackContext):
     """Generate a deposit address for the user."""
@@ -496,6 +533,38 @@ updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
 
 # Get the dispatcher to register handlers
 dispatcher = updater.dispatcher
+
+def on_new_chat_members(update: Update, context: CallbackContext):
+    """Automatically run the register_all command when a new member joins the chat."""
+    register_all(update, context)
+
+# Define message handlers
+start_handler = CommandHandler('start', start)
+help_handler = CommandHandler('help', help)
+register_handler = CommandHandler('register', register)
+register_all_handler = CommandHandler('register_all', register_all)
+deposit_handler = CommandHandler('deposit', deposit)
+withdraw_handler = CommandHandler('withdraw', withdraw)
+balance_handler = CommandHandler('balance', balance)
+tip_handler = CommandHandler('tip', tip)
+transfer_handler = CommandHandler('transfer', transfer)
+rain_handler = CommandHandler('rain', rain)
+draw_handler = CommandHandler('draw', draw)
+on_new_chat_members_handler = MessageHandler(Filters.status_update.new_chat_members, on_new_chat_members)
+
+# Add message handlers to dispatcher
+dispatcher.add_handler(start_handler)
+dispatcher.add_handler(help_handler)
+dispatcher.add_handler(register_handler)
+dispatcher.add_handler(register_all_handler)
+dispatcher.add_handler(deposit_handler)
+dispatcher.add_handler(withdraw_handler)
+dispatcher.add_handler(balance_handler)
+dispatcher.add_handler(tip_handler)
+dispatcher.add_handler(transfer_handler)
+dispatcher.add_handler(rain_handler)
+dispatcher.add_handler(draw_handler)
+dispatcher.add_handler(on_new_chat_members_handler)
 
 # Add command handlers
 dispatcher.add_handler(CommandHandler('start', start))
